@@ -1,4 +1,4 @@
-import { Scene, PerspectiveCamera, WebGLRenderer } from "three";
+import { Scene, PerspectiveCamera, WebGLRenderer, Camera } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 
 export function resizeLogic(
@@ -29,10 +29,29 @@ export function toggleRotation(
   rotate: boolean = false
 ) {
   if (!rotate) {
-    let id = window.requestAnimationFrame(() => {});
-    while (id--) {
-      window.cancelAnimationFrame(id);
-    }
+    const p = new Promise((res, rej) => {
+      let id = window.requestAnimationFrame(() => {});
+      id--;
+      while (id >= 0) {
+        window.cancelAnimationFrame(id);
+        id--;
+      }
+      if (id <= 0) {
+        res("");
+      }
+    });
+
+    p.then(() => {
+      scene.children.forEach((item) => {
+        if (item.type === "Mesh") {
+          let animate = () => {
+            requestAnimationFrame(animate);
+            // renderer.render(scene, camera);
+          };
+          animate();
+        }
+      });
+    }).catch();
   } else {
     scene.children.forEach((item) => {
       if (item.type === "Mesh") {
@@ -41,10 +60,19 @@ export function toggleRotation(
           item.rotation.x += 0.0055;
           item.rotation.y += 0.005;
           renderer.render(scene, camera);
-          controls.update();
         };
         animate();
       }
     });
   }
 }
+
+export const moveHorizantal = (
+  val: number,
+  camera: Camera,
+  renderer: WebGLRenderer,
+  scene: Scene
+) => {
+  camera.position.x += val;
+  renderer.render(scene, camera);
+};
