@@ -1,6 +1,8 @@
 import { Scene, PerspectiveCamera, WebGLRenderer, Camera } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 
+import * as Three from "three";
+
 export function resizeLogic(
   element: HTMLDivElement,
   renderer: WebGLRenderer,
@@ -32,34 +34,38 @@ export function toggleRotation(
     const p = new Promise((res, rej) => {
       let id = window.requestAnimationFrame(() => {});
       id--;
-      while (id >= 0) {
+      while (id--) {
         window.cancelAnimationFrame(id);
-        id--;
-      }
-      if (id <= 0) {
-        res("");
       }
     });
 
     p.then(() => {
+      camera.updateMatrix();
       scene.children.forEach((item) => {
         if (item.type === "Mesh") {
-          let animate = () => {
-            requestAnimationFrame(animate);
-            // renderer.render(scene, camera);
-          };
-          animate();
+          // let animate = () => {
+          //   // requestAnimationFrame(animate);
+          // };
+          // animate();
         }
       });
     }).catch();
   } else {
+    const p = new Promise((res, rej) => {
+      let id = window.requestAnimationFrame(() => {});
+      id--;
+      while (id--) {
+        window.cancelAnimationFrame(id);
+      }
+    });
+    p.then().catch();
     scene.children.forEach((item) => {
       if (item.type === "Mesh") {
         let animate = () => {
           requestAnimationFrame(animate);
-          item.rotation.x += 0.0055;
           item.rotation.y += 0.005;
-          renderer.render(scene, camera);
+          item.rotation.x += 0.0055;
+          controls.update();
         };
         animate();
       }
@@ -67,12 +73,34 @@ export function toggleRotation(
   }
 }
 
-export const moveHorizantal = (
-  val: number,
-  camera: Camera,
-  renderer: WebGLRenderer,
-  scene: Scene
-) => {
-  camera.position.x += val;
-  renderer.render(scene, camera);
+export const moveHorizantal = (val: number, controls: OrbitControls) => {
+  const offset = new Three.Vector3();
+  const position = controls.object.position;
+  offset.copy(position).sub(controls.target);
+  let targetDistance = offset.length();
+  //@ts-ignore
+  targetDistance *= Math.tan(((controls.object.fov / 2) * Math.PI) / 180.0);
+  //@ts-ignore
+  const distance = (2 * val * targetDistance) / controls.domElement.offsetHeight;
+  const objectMatrix = controls.object.matrix;
+  const v = new Three.Vector3();
+  v.setFromMatrixColumn(objectMatrix, 0);
+  v.multiplyScalar(-distance);
+  controls.target.add(v);
+};
+
+export const moveVertical = (val: number, controls: OrbitControls) => {
+  const offset = new Three.Vector3();
+  const position = controls.object.position;
+  offset.copy(position).sub(controls.target);
+  let targetDistance = offset.length();
+  //@ts-ignore
+  targetDistance *= Math.tan(((controls.object.fov / 2) * Math.PI) / 180.0);
+  //@ts-ignore
+  const distance = (2 * val * targetDistance) / controls.domElement.offsetHeight;
+  const objectMatrix = controls.object.matrix;
+  const v = new Three.Vector3();
+  v.setFromMatrixColumn(objectMatrix, 1);
+  v.multiplyScalar(distance);
+  controls.target.add(v);
 };
